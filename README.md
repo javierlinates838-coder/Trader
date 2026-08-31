@@ -2,11 +2,11 @@
 
 Production-quality options value scanner using **only** [MarketData.app](https://www.marketdata.app/) for market data.
 
-## Phase 1 Status: MarketData Connection
+## Phase 2 Status: Database & Caching + Vercel Deploy
 
-This phase establishes the MarketData.app API connection, verifies data fields, and provides a diagnostic page.
+PostgreSQL caching layer via **Vercel Postgres (Neon)**. See [Deployment Guide](docs/DEPLOYMENT.md).
 
-### Quick Start
+### Quick Start (Local)
 
 1. Copy environment file and add your token:
 
@@ -24,6 +24,15 @@ npm run dev
 ```
 
 3. Open [http://localhost:3000/diagnostics](http://localhost:3000/diagnostics)
+
+### Deploy to Vercel
+
+1. Import repo on Vercel with **Root Directory** = `frontend`
+2. Add **Vercel Postgres** storage (auto-sets `POSTGRES_URL`)
+3. Set `MARKETDATA_TOKEN`, `CRON_SECRET`, `MIGRATE_SECRET`
+4. Run migration: `POST /api/db/migrate`
+
+Full guide: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 
 ### Project Structure
 
@@ -50,7 +59,7 @@ uvicorn app.main:app --reload --app-dir .
 
 ## Documentation
 
-- [Architecture](docs/ARCHITECTURE.md)
+- [Deployment (Vercel)](docs/DEPLOYMENT.md)
 - [MarketData API](docs/MARKETDATA_API.md)
 - [OPTION1 Scanner](docs/OPTION1.md)
 - [Roadmap](docs/ROADMAP.md)

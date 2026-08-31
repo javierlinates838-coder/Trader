@@ -1,6 +1,6 @@
 # OPTION1 Roadmap
 
-## Phase 1: MarketData Connection ✅ (Current)
+## Phase 1: MarketData Connection ✅
 
 - [x] Project scaffolding (Next.js + FastAPI structure)
 - [x] `.env.example` with `MARKETDATA_TOKEN`
@@ -14,13 +14,14 @@
 - [x] Data freshness classification
 - [x] Architecture documentation
 
-## Phase 2: Database & Caching
+## Phase 2: Database & Caching ✅ (Current)
 
-- [ ] PostgreSQL setup with Alembic migrations
-- [ ] Tables: symbols, stock_quotes, stock_bars, option_contracts, option_quotes
-- [ ] Quote/candle caching with TTL
-- [ ] API credit tracking and rate limit handling
-- [ ] Scan queue infrastructure
+- [x] PostgreSQL schema with Drizzle ORM (Neon / Vercel Postgres)
+- [x] Tables: symbols, stock_quotes, stock_bars, option_contracts, option_quotes, option_chain_cache, api_requests, scan_queue, settings
+- [x] Quote/candle/chain caching with TTL
+- [x] API credit tracking and rate limit handling
+- [x] Scan queue infrastructure
+- [x] Vercel deployment configuration
 
 ## Phase 3: Underlying Engine (Module 1)
 
