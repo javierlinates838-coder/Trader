@@ -2,71 +2,67 @@
 
 Production-quality options value scanner using **only** [MarketData.app](https://www.marketdata.app/) for market data.
 
-## Phase 2 Status: Database & Caching + Vercel Deploy
+## Current Status
 
-PostgreSQL caching layer via **Vercel Postgres (Neon)**. See [Deployment Guide](docs/DEPLOYMENT.md).
+| Phase | Status |
+|-------|--------|
+| Phase 1 — MarketData connection | ✅ Complete |
+| Phase 2 — PostgreSQL caching + Vercel deploy | ✅ Complete |
+| Phase 3 — Underlying engine (SMA, RSI, ATR, classification) | ✅ Complete |
+| Phase 4 — Option pipeline + scanner | 🔜 Next |
 
-### Quick Start (Local)
+## Quick Start (Local)
 
-1. Copy environment file and add your token:
-
-```bash
-cp .env.example .env.local
-# Edit .env.local and set MARKETDATA_TOKEN=your_token
-```
-
-2. Start the frontend:
+1. Copy environment file and add your **one** API key:
 
 ```bash
 cd frontend
+cp .env.example .env.local
+# Set MARKETDATA_TOKEN=your_key
+```
+
+2. Install and run:
+
+```bash
 npm install
 npm run dev
 ```
 
-3. Open [http://localhost:3000/diagnostics](http://localhost:3000/diagnostics)
+3. Open:
+- [http://localhost:3000/diagnostics](http://localhost:3000/diagnostics) — API test
+- [http://localhost:3000/underlying](http://localhost:3000/underlying) — technical analysis
 
-### Deploy to Vercel
+## Deploy to Vercel
 
 1. Import at [vercel.com/new/import](https://vercel.com/new/import) — choose **Services** preset
-2. Expand **Environment Variables** → add `MARKETDATA_TOKEN` (your MarketData.app API key)
-3. Add **Vercel Postgres** after deploy (Storage tab)
-4. Redeploy, then run migration: `POST /api/db/migrate`
+2. Expand **Environment Variables** → add **only** `MARKETDATA_TOKEN` (your MarketData.app key)
+3. Click **Deploy**
+4. (Optional) Add **Vercel Postgres** under Storage → Redeploy
+5. (Optional) Run migration: `POST /api/db/migrate`
 
 Full guide: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 
-### Project Structure
+## Project Structure
 
 ```
-/workspace
-├── frontend/          # Next.js + TypeScript + Tailwind + shadcn/ui
-│   └── src/
-│       ├── services/marketdata.ts   # Server-side MarketData client
-│       └── app/api/diagnostics/     # API route (token stays server-side)
-├── backend/           # Python FastAPI scanner engine (Phase 2+)
-│   └── providers/marketdata.py
-└── docs/              # Architecture and API documentation
-```
-
-### Backend (Phase 2+)
-
-```bash
-cd backend
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload --app-dir .
+Trader/
+├── frontend/          # Next.js app (deployed to Vercel)
+│   └── src/services/marketdata.ts   # Server-side API client
+├── backend/           # FastAPI (optional, at /api/backend on Vercel)
+└── docs/              # Architecture & deployment docs
 ```
 
 ## Documentation
 
 - [Deployment (Vercel)](docs/DEPLOYMENT.md)
+- [Architecture](docs/ARCHITECTURE.md)
 - [MarketData API](docs/MARKETDATA_API.md)
-- [OPTION1 Scanner](docs/OPTION1.md)
+- [OPTION1 Scanner Spec](docs/OPTION1.md)
 - [Roadmap](docs/ROADMAP.md)
 
 ## Data Policy
 
 - **No fake data** in production
 - All scores from real API data + calculations
-- Data freshness clearly labeled: REALTIME / DELAYED / STALE / MARKET CLOSED
-- Token never exposed to frontend
+- Data freshness: REALTIME / DELAYED / STALE / MARKET CLOSED
+- API token never exposed to the browser

@@ -16,11 +16,16 @@ The repo is already connected. Vercel will deploy from `main` after merge.
    - **backend** → `/api/backend` (FastAPI — optional, scanner runs in Next.js)
 5. Expand **Environment Variables** and add:
 
-| Variable | Value |
-|----------|-------|
-| `MARKETDATA_TOKEN` | Your MarketData.app API token |
-| `MIGRATE_SECRET` | Any random string (protects `/api/db/migrate`) |
-| `CRON_SECRET` | Any random string (protects cron routes) |
+| Variable | Required | What to put |
+|----------|----------|-------------|
+| `MARKETDATA_TOKEN` | **Yes** | Your **one** MarketData.app API key from the email |
+
+That's all you need to start. The variables below are optional passwords you invent yourself — **not** additional API keys:
+
+| Variable | Required | What to put |
+|----------|----------|-------------|
+| `MIGRATE_SECRET` | Optional | Any random string you make up |
+| `CRON_SECRET` | Optional | Any random string you make up |
 
 6. Click **Deploy**
 
@@ -39,17 +44,17 @@ The token is server-side only — never exposed to the browser.
 1. In your Vercel project → **Storage** → **Create Database** → **Postgres**
 2. This auto-sets `POSTGRES_URL` and `POSTGRES_URL_NON_POOLING` env vars
 
-## 4. Environment Variables
-
-In Vercel → **Settings** → **Environment Variables**:
+## 4. Environment Variables (summary)
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `MARKETDATA_TOKEN` | Yes | Your MarketData.app API token |
-| `POSTGRES_URL` | Yes | Auto-set by Vercel Postgres |
-| `POSTGRES_URL_NON_POOLING` | Yes | Auto-set (used for migrations) |
-| `CRON_SECRET` | Recommended | Random string to protect cron routes |
-| `MIGRATE_SECRET` | Recommended | Random string to protect `/api/db/migrate` |
+| `MARKETDATA_TOKEN` | **Yes** | Your **only** MarketData.app API key |
+| `POSTGRES_URL` | Yes (for DB) | Auto-set when you add Vercel Postgres |
+| `POSTGRES_URL_NON_POOLING` | Yes (for DB) | Auto-set (used for migrations) |
+| `MIGRATE_SECRET` | Optional | Random password you create — not an API key |
+| `CRON_SECRET` | Optional | Random password you create — not an API key |
+
+> **You only need one API key total:** `MARKETDATA_TOKEN`. Everything else is either auto-set by Vercel or a password you invent.
 
 ## 5. Run Database Migration
 
@@ -64,9 +69,11 @@ This creates all tables and seeds the 36-symbol scan universe.
 
 ## 6. Verify Deployment
 
+- **Home:** `/` — shows System Status (token + database)
 - **Health:** `GET /api/health`
-- **Diagnostics:** `/diagnostics`
-- **Cache stats:** `GET /api/cache/stats`
+- **Diagnostics:** `/diagnostics` — test with **QQQ**
+- **Underlying:** `/underlying` — technical analysis dashboard
+- **Backend (optional):** `/api/backend/health` — FastAPI service
 
 ## Architecture on Vercel
 
@@ -83,10 +90,10 @@ Browser → Vercel Edge/Node (Next.js)
 
 ## Cron Jobs
 
-Configured in `frontend/vercel.json`:
+Configured in root `vercel.json` (frontend service):
 - `GET /api/cron/process-queue` every 5 minutes
 
-Requires `CRON_SECRET` env var on Vercel (Hobby plan supports 2 cron jobs).
+`CRON_SECRET` is optional on Hobby plan for basic operation.
 
 ## Local Development
 
