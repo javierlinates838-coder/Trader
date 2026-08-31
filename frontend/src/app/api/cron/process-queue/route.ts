@@ -8,7 +8,10 @@ export const maxDuration = 300;
 
 function isAuthorized(request: Request): boolean {
   const secret = process.env.CRON_SECRET;
-  if (!secret) return process.env.NODE_ENV === "development";
+  if (!secret) {
+    // No secret configured — accept Vercel cron invocations only
+    return request.headers.get("user-agent")?.startsWith("vercel-cron/") ?? false;
+  }
   const auth = request.headers.get("authorization");
   return auth === `Bearer ${secret}`;
 }
