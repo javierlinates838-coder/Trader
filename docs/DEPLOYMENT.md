@@ -56,6 +56,31 @@ The token is server-side only — never exposed to the browser.
 
 > **You only need one API key total:** `MARKETDATA_TOKEN`. Everything else is either auto-set by Vercel or a password you invent.
 
+## Troubleshooting
+
+### Diagnostics shows "Market Data Not Connected"
+
+1. **Vercel** → your project → **Settings** → **Environment Variables**
+2. Add `MARKETDATA_TOKEN` = your MarketData.app API key
+3. Enable for **Production**, **Preview**, and **Development**
+4. **Deployments** → **Redeploy** (env vars only apply after redeploy)
+
+### "No database connection string was provided to neon()"
+
+You have a `POSTGRES_URL` variable that is **empty** or invalid.
+
+**Option A — add Postgres (recommended):**
+1. **Storage** → **Create Database** → **Postgres**
+2. Connect it to this project (auto-fills `POSTGRES_URL`)
+3. Redeploy
+
+**Option B — run without a database for now:**
+1. **Settings** → **Environment Variables**
+2. Delete any empty `POSTGRES_URL`, `DATABASE_URL`, or `POSTGRES_PRISMA_URL` entries
+3. Redeploy
+
+The app will still fetch live MarketData quotes without Postgres; caching and scan queue need the database.
+
 ## 5. Run Database Migration
 
 After first deploy, run migrations once:

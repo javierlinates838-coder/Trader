@@ -3,12 +3,14 @@ import { drizzle } from "drizzle-orm/neon-http";
 import * as schema from "./schema";
 
 export function getDatabaseUrl(): string | null {
-  return (
+  const url =
     process.env.POSTGRES_URL ??
     process.env.DATABASE_URL ??
     process.env.POSTGRES_PRISMA_URL ??
-    null
-  );
+    null;
+
+  if (!url?.trim()) return null;
+  return url.trim();
 }
 
 export function isDatabaseConfigured(): boolean {
@@ -30,10 +32,14 @@ export function getDb() {
   return _db;
 }
 
-/** Safe accessor — returns null when DB is not configured */
+/** Safe accessor — returns null when DB is not configured or unavailable */
 export function tryGetDb() {
   if (!isDatabaseConfigured()) return null;
-  return getDb();
+  try {
+    return getDb();
+  } catch {
+    return null;
+  }
 }
 
 export { schema };
