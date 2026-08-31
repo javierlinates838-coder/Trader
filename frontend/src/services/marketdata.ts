@@ -410,7 +410,7 @@ export async function runDiagnostics(symbol: string = "QQQ") {
         latestQuoteTimestamp: null,
         dataFreshness: "STALE" as const,
         error:
-          "MARKETDATA_TOKEN is not configured. Add it to .env.local",
+          "MARKETDATA_TOKEN is not configured. Add it in Vercel → Settings → Environment Variables, then redeploy.",
       },
       symbol,
       connectionMode,
