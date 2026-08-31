@@ -90,7 +90,7 @@ Browser → Vercel Edge/Node (Next.js)
 
 ## Cron Jobs
 
-Configured in root `vercel.json` (frontend service):
+Configured at the root of `vercel.json` (routed to the frontend service via rewrites):
 - `GET /api/cron/process-queue` every 5 minutes
 
 `CRON_SECRET` is optional on Hobby plan for basic operation.

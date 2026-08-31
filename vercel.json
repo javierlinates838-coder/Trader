@@ -1,15 +1,15 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    {
+      "path": "/api/cron/process-queue",
+      "schedule": "*/5 * * * *"
+    }
+  ],
   "services": {
     "frontend": {
       "root": "frontend",
-      "framework": "nextjs",
-      "crons": [
-        {
-          "path": "/api/cron/process-queue",
-          "schedule": "*/5 * * * *"
-        }
-      ]
+      "framework": "nextjs"
     },
     "backend": {
       "root": "backend",
