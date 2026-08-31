@@ -14,6 +14,7 @@ import type {
   OptionExpirationsResponse,
   StockQuoteResponse,
 } from "@/types/marketdata";
+import type { OHLCVBar, UnderlyingMetrics } from "@/types/underlying";
 
 const {
   stockQuotes,
@@ -22,6 +23,7 @@ const {
   optionContracts,
   optionExpirationsCache,
   optionChainCache,
+  underlyingAnalysis,
   apiRequests,
 } = schema;
 
@@ -342,6 +344,150 @@ export async function cacheStockBars(
         },
       });
   }
+}
+
+export async function getCachedStockBars(
+  symbol: string,
+  resolution: string,
+  minBars: number,
+): Promise<OHLCVBar[]> {
+  const db = tryGetDb();
+  if (!db) return [];
+
+  const sym = symbol.toUpperCase();
+  const rows = await db
+    .select()
+    .from(stockBars)
+    .where(
+      and(
+        eq(stockBars.symbol, sym),
+        eq(stockBars.resolution, resolution),
+        gt(stockBars.expiresAt, new Date()),
+      ),
+    )
+    .orderBy(stockBars.barTime);
+
+  if (rows.length < minBars) return [];
+
+  return rows.map((r) => ({
+    time: r.barTime,
+    open: r.open,
+    high: r.high,
+    low: r.low,
+    close: r.close,
+    volume: r.volume ?? 0,
+  }));
+}
+
+export async function saveUnderlyingAnalysis(
+  metrics: UnderlyingMetrics,
+): Promise<void> {
+  const db = tryGetDb();
+  if (!db) return;
+
+  await db.insert(underlyingAnalysis).values({
+    symbol: metrics.symbol,
+    price: metrics.price,
+    return1d: metrics.return1d,
+    return5d: metrics.return5d,
+    return20d: metrics.return20d,
+    sma20: metrics.sma20,
+    sma50: metrics.sma50,
+    sma200: metrics.sma200,
+    ema9: metrics.ema9,
+    ema20: metrics.ema20,
+    ema50: metrics.ema50,
+    ema200: metrics.ema200,
+    rsi14: metrics.rsi14,
+    atr14: metrics.atr14,
+    historicalVolatility: metrics.historicalVolatility,
+    volume: metrics.volume,
+    relativeVolume: metrics.relativeVolume,
+    recentHigh: metrics.recentHigh,
+    recentLow: metrics.recentLow,
+    support: metrics.support,
+    resistance: metrics.resistance,
+    distanceFromEma20: metrics.distanceFromEma20,
+    distanceFromEma50: metrics.distanceFromEma50,
+    distanceFromEma200: metrics.distanceFromEma200,
+    classification: metrics.classification,
+    metricsJson: metrics,
+    analyzedAt: new Date(metrics.analyzedAt),
+  });
+}
+
+export async function getLatestUnderlyingAnalysis(
+  symbol: string,
+): Promise<UnderlyingMetrics | null> {
+  const db = tryGetDb();
+  if (!db) return null;
+
+  const sym = symbol.toUpperCase();
+  const rows = await db
+    .select()
+    .from(underlyingAnalysis)
+    .where(eq(underlyingAnalysis.symbol, sym))
+    .orderBy(desc(underlyingAnalysis.analyzedAt))
+    .limit(1);
+
+  const row = rows[0];
+  if (!row) return null;
+
+  if (row.metricsJson) return row.metricsJson as UnderlyingMetrics;
+
+  return {
+    symbol: row.symbol,
+    price: row.price,
+    return1d: row.return1d,
+    return5d: row.return5d,
+    return20d: row.return20d,
+    sma20: row.sma20,
+    sma50: row.sma50,
+    sma200: row.sma200,
+    ema9: row.ema9,
+    ema20: row.ema20,
+    ema50: row.ema50,
+    ema200: row.ema200,
+    rsi14: row.rsi14,
+    atr14: row.atr14,
+    historicalVolatility: row.historicalVolatility,
+    volume: row.volume,
+    relativeVolume: row.relativeVolume,
+    recentHigh: row.recentHigh,
+    recentLow: row.recentLow,
+    support: row.support,
+    resistance: row.resistance,
+    distanceFromEma20: row.distanceFromEma20,
+    distanceFromEma50: row.distanceFromEma50,
+    distanceFromEma200: row.distanceFromEma200,
+    classification: row.classification as UnderlyingMetrics["classification"],
+    analyzedAt: row.analyzedAt.toISOString(),
+  };
+}
+
+export async function getAllLatestUnderlyingAnalysis(): Promise<
+  UnderlyingMetrics[]
+> {
+  const db = tryGetDb();
+  if (!db) return [];
+
+  // Get latest per symbol using distinct on symbol
+  const rows = await db
+    .select()
+    .from(underlyingAnalysis)
+    .orderBy(desc(underlyingAnalysis.analyzedAt));
+
+  const seen = new Set<string>();
+  const results: UnderlyingMetrics[] = [];
+
+  for (const row of rows) {
+    if (seen.has(row.symbol)) continue;
+    seen.add(row.symbol);
+    const m = row.metricsJson as UnderlyingMetrics | null;
+    if (m) results.push(m);
+  }
+
+  return results;
 }
 
 export async function getCacheStats(): Promise<{

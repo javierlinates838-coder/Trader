@@ -1,0 +1,32 @@
+CREATE TABLE IF NOT EXISTS "underlying_analysis" (
+  "id" serial PRIMARY KEY NOT NULL,
+  "symbol" varchar(16) NOT NULL,
+  "price" double precision NOT NULL,
+  "return_1d" double precision,
+  "return_5d" double precision,
+  "return_20d" double precision,
+  "sma_20" double precision,
+  "sma_50" double precision,
+  "sma_200" double precision,
+  "ema_9" double precision,
+  "ema_20" double precision,
+  "ema_50" double precision,
+  "ema_200" double precision,
+  "rsi_14" double precision,
+  "atr_14" double precision,
+  "historical_volatility" double precision,
+  "volume" bigint,
+  "relative_volume" double precision,
+  "recent_high" double precision,
+  "recent_low" double precision,
+  "support" double precision,
+  "resistance" double precision,
+  "distance_from_ema_20" double precision,
+  "distance_from_ema_50" double precision,
+  "distance_from_ema_200" double precision,
+  "classification" varchar(32) NOT NULL,
+  "metrics_json" jsonb,
+  "analyzed_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+CREATE INDEX IF NOT EXISTS "underlying_analysis_symbol_idx" ON "underlying_analysis" ("symbol");
+CREATE INDEX IF NOT EXISTS "underlying_analysis_analyzed_idx" ON "underlying_analysis" ("analyzed_at");

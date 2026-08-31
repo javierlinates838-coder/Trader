@@ -234,6 +234,47 @@ export const optionExpirationsCache = pgTable(
   ],
 );
 
+/** Stored underlying technical analysis results */
+export const underlyingAnalysis = pgTable(
+  "underlying_analysis",
+  {
+    id: serial("id").primaryKey(),
+    symbol: varchar("symbol", { length: 16 }).notNull(),
+    price: doublePrecision("price").notNull(),
+    return1d: doublePrecision("return_1d"),
+    return5d: doublePrecision("return_5d"),
+    return20d: doublePrecision("return_20d"),
+    sma20: doublePrecision("sma_20"),
+    sma50: doublePrecision("sma_50"),
+    sma200: doublePrecision("sma_200"),
+    ema9: doublePrecision("ema_9"),
+    ema20: doublePrecision("ema_20"),
+    ema50: doublePrecision("ema_50"),
+    ema200: doublePrecision("ema_200"),
+    rsi14: doublePrecision("rsi_14"),
+    atr14: doublePrecision("atr_14"),
+    historicalVolatility: doublePrecision("historical_volatility"),
+    volume: bigint("volume", { mode: "number" }),
+    relativeVolume: doublePrecision("relative_volume"),
+    recentHigh: doublePrecision("recent_high"),
+    recentLow: doublePrecision("recent_low"),
+    support: doublePrecision("support"),
+    resistance: doublePrecision("resistance"),
+    distanceFromEma20: doublePrecision("distance_from_ema_20"),
+    distanceFromEma50: doublePrecision("distance_from_ema_50"),
+    distanceFromEma200: doublePrecision("distance_from_ema_200"),
+    classification: varchar("classification", { length: 32 }).notNull(),
+    metricsJson: jsonb("metrics_json"),
+    analyzedAt: timestamp("analyzed_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("underlying_analysis_symbol_idx").on(t.symbol),
+    index("underlying_analysis_analyzed_idx").on(t.analyzedAt),
+  ],
+);
+
 /** App settings (risk limits, scan modes, etc.) */
 export const settings = pgTable("settings", {
   key: varchar("key", { length: 64 }).primaryKey(),
@@ -246,3 +287,4 @@ export const settings = pgTable("settings", {
 export type Symbol = typeof symbols.$inferSelect;
 export type StockQuote = typeof stockQuotes.$inferSelect;
 export type ScanQueueJob = typeof scanQueue.$inferSelect;
+export type UnderlyingAnalysisRow = typeof underlyingAnalysis.$inferSelect;
