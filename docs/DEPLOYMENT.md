@@ -85,13 +85,15 @@ Browser → Vercel Edge/Node (Next.js)
 
 - All MarketData requests stay server-side
 - Quotes/chains cached in Postgres (saves API credits)
-- Cron job runs every 5 min: purge expired cache + process scan queue
+- Cron job runs once daily (Hobby plan limit): purge expired cache + process scan queue
 - FastAPI backend (`backend/`) is for local dev only; production scanner logic lives in Next.js API routes
 
 ## Cron Jobs
 
 Configured at the root of `vercel.json` (routed to the frontend service via rewrites):
-- `GET /api/cron/process-queue` every 5 minutes
+- `GET /api/cron/process-queue` once daily at 05:00 UTC (`0 5 * * *`)
+
+> **Hobby plan:** Vercel only allows cron jobs that run once per day. Upgrade to Pro for more frequent schedules (e.g. every 5 minutes).
 
 `CRON_SECRET` is optional on Hobby plan for basic operation.
 
