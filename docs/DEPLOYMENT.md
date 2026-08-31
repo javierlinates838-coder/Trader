@@ -6,14 +6,33 @@ OPTION1 deploys as a **Next.js app** from the `frontend/` directory with **Verce
 
 The repo is already connected. Vercel will deploy from `main` after merge.
 
-## 2. Create Vercel Project
+## 2. Import on Vercel (Services)
 
-1. Go to [vercel.com/new](https://vercel.com/new)
-2. Import the `Trader` GitHub repository
-3. Framework Preset: **Next.js** (auto-detected)
-4. **Root Directory:** leave as `.` (repo root) — `vercel.json` at the repo root sets `"rootDirectory": "frontend"` automatically
+1. Go to [vercel.com/new/import](https://vercel.com/new/import)
+2. Select the **Trader** repository
+3. **Application Preset:** **Services** (Vercel auto-detects `frontend` + `backend`)
+4. Confirm paths:
+   - **frontend** → `/` (Next.js)
+   - **backend** → `/api/backend` (FastAPI — optional, scanner runs in Next.js)
+5. Expand **Environment Variables** and add:
 
-> If the site shows a build error or blank page, open **Settings → General → Root Directory** and set it to `frontend`, then redeploy.
+| Variable | Value |
+|----------|-------|
+| `MARKETDATA_TOKEN` | Your MarketData.app API token |
+| `MIGRATE_SECRET` | Any random string (protects `/api/db/migrate`) |
+| `CRON_SECRET` | Any random string (protects cron routes) |
+
+6. Click **Deploy**
+
+> The root `vercel.json` defines both services. You do **not** need to edit it manually.
+
+### Where to set the API token
+
+**During import:** expand **Environment Variables** on the deploy screen and add `MARKETDATA_TOKEN`.
+
+**After deploy:** Project → **Settings** → **Environment Variables** → add `MARKETDATA_TOKEN` → **Redeploy**.
+
+The token is server-side only — never exposed to the browser.
 
 ## 3. Add Vercel Postgres
 
