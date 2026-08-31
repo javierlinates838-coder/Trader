@@ -46,6 +46,17 @@ interface DiagnosticsResult {
   chain?: unknown;
   normalizedChain?: NormalizedOptionContract[];
   chainContractCount?: number;
+  databaseConfigured?: boolean;
+  cacheStats?: {
+    databaseConnected: boolean;
+    stockQuotesCached: number;
+    optionQuotesCached: number;
+    stockBarsCached: number;
+    apiRequestsLast24h: number;
+    apiCreditsLast24h: number;
+    cacheHitsLast24h: number;
+    pendingScanJobs: number;
+  };
   error?: string;
 }
 
@@ -250,9 +261,68 @@ export default function DiagnosticsPage() {
                       {data.health.latestQuoteTimestamp ?? "—"}
                     </p>
                   </div>
+                  <div>
+                    <p className="text-xs text-slate-500">Database</p>
+                    <p
+                      className={`font-mono text-sm ${data.databaseConfigured ? "text-emerald-400" : "text-amber-400"}`}
+                    >
+                      {data.databaseConfigured ? "CONFIGURED" : "NOT SET"}
+                    </p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
+
+            {data.cacheStats && (
+              <Card className="border-slate-800 bg-slate-900/50">
+                <CardHeader>
+                  <CardTitle className="text-white">Cache & API Stats</CardTitle>
+                  <CardDescription className="text-slate-400">
+                    PostgreSQL cache layer (Phase 2)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <div>
+                      <p className="text-xs text-slate-500">Stock Quotes Cached</p>
+                      <p className="font-mono text-sm text-slate-300">
+                        {data.cacheStats.stockQuotesCached}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500">Option Quotes Cached</p>
+                      <p className="font-mono text-sm text-slate-300">
+                        {data.cacheStats.optionQuotesCached}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500">API Requests (24h)</p>
+                      <p className="font-mono text-sm text-slate-300">
+                        {data.cacheStats.apiRequestsLast24h}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500">Cache Hits (24h)</p>
+                      <p className="font-mono text-sm text-emerald-400">
+                        {data.cacheStats.cacheHitsLast24h}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500">Credits Used (24h)</p>
+                      <p className="font-mono text-sm text-amber-400">
+                        {data.cacheStats.apiCreditsLast24h}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500">Pending Scan Jobs</p>
+                      <p className="font-mono text-sm text-slate-300">
+                        {data.cacheStats.pendingScanJobs}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {data.connectionMode === "demo" && (
               <Alert className="border-amber-500/50 bg-amber-950/30">

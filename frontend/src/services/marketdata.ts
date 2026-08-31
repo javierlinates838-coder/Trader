@@ -1,9 +1,6 @@
 /**
- * MarketData.app API client — server-side only.
- * Docs: https://www.marketdata.app/docs/api/
- *
- * All requests use Bearer token authentication.
- * Never import this module from client components.
+ * MarketData.app API client with PostgreSQL caching.
+ * Server-side only — never import from client components.
  */
 
 import type {
@@ -18,6 +15,19 @@ import {
   classifyDataFreshness,
   formatUnixEt,
 } from "@/lib/data-freshness";
+import { RATE_LIMIT } from "@/lib/constants";
+import { estimateCredits, sleep } from "@/lib/cache-utils";
+import { isDatabaseConfigured } from "@/db";
+import {
+  cacheExpirations,
+  cacheOptionChain,
+  cacheStockQuote,
+  getCachedExpirations,
+  getCachedOptionChain,
+  getCachedStockQuote,
+  logApiRequest,
+  type ChainCacheKey,
+} from "@/services/cache";
 
 const BASE_URL = "https://api.marketdata.app/v1";
 
@@ -44,6 +54,10 @@ function getToken(): string | null {
 
 let lastSuccessfulRequest: Date | null = null;
 let latestQuoteTimestamp: number | null = null;
+
+function canUseUnauthenticated(symbol: string): boolean {
+  return isDemoMode() && DEMO_SYMBOLS.has(symbol.toUpperCase());
+}
 
 async function marketDataFetch<T>(
   path: string,
@@ -74,57 +88,147 @@ async function marketDataFetch<T>(
     );
   }
 
-  const response = await fetch(url.toString(), {
-    headers,
-    cache: "no-store",
-  });
+  let lastError: MarketDataError | null = null;
 
-  const data = (await response.json()) as T & { s?: string; errmsg?: string };
+  for (let attempt = 0; attempt <= RATE_LIMIT.MAX_RETRIES; attempt++) {
+    const start = Date.now();
 
-  if (!response.ok || data.s === "error") {
-    throw new MarketDataError(
-      data.errmsg ?? `MarketData API error: HTTP ${response.status}`,
-      response.status,
-      data,
-    );
+    try {
+      const response = await fetch(url.toString(), {
+        headers,
+        cache: "no-store",
+      });
+
+      const data = (await response.json()) as T & {
+        s?: string;
+        errmsg?: string;
+      };
+
+      if (response.status === 429) {
+        const delay = Math.min(
+          RATE_LIMIT.BASE_DELAY_MS * 2 ** attempt,
+          RATE_LIMIT.MAX_DELAY_MS,
+        );
+        await logApiRequest({
+          endpoint: path,
+          statusCode: 429,
+          error: "Rate limited",
+          latencyMs: Date.now() - start,
+        });
+        if (attempt < RATE_LIMIT.MAX_RETRIES) {
+          await sleep(delay);
+          continue;
+        }
+        throw new MarketDataError("Rate limit exceeded", 429, data);
+      }
+
+      if (!response.ok || data.s === "error") {
+        await logApiRequest({
+          endpoint: path,
+          statusCode: response.status,
+          error: data.errmsg ?? `HTTP ${response.status}`,
+          latencyMs: Date.now() - start,
+          creditsEstimated: estimateCredits(path),
+        });
+        throw new MarketDataError(
+          data.errmsg ?? `MarketData API error: HTTP ${response.status}`,
+          response.status,
+          data,
+        );
+      }
+
+      await logApiRequest({
+        endpoint: path,
+        statusCode: response.status,
+        latencyMs: Date.now() - start,
+        creditsEstimated: estimateCredits(
+          path,
+          (data as { optionSymbol?: string[] }).optionSymbol?.length ?? 1,
+        ),
+      });
+
+      lastSuccessfulRequest = new Date();
+      return data;
+    } catch (err) {
+      if (err instanceof MarketDataError) {
+        lastError = err;
+        if (err.status === 429 && attempt < RATE_LIMIT.MAX_RETRIES) continue;
+        throw err;
+      }
+      lastError = new MarketDataError(
+        err instanceof Error ? err.message : "Network error",
+        500,
+      );
+      if (attempt < RATE_LIMIT.MAX_RETRIES) {
+        await sleep(RATE_LIMIT.BASE_DELAY_MS * 2 ** attempt);
+        continue;
+      }
+    }
   }
 
-  lastSuccessfulRequest = new Date();
-  return data;
+  throw lastError ?? new MarketDataError("Request failed", 500);
 }
 
-function canUseUnauthenticated(symbol: string): boolean {
-  return isDemoMode() && DEMO_SYMBOLS.has(symbol.toUpperCase());
-}
-
-/** GET /v1/stocks/quotes/{symbol}/ */
+/** GET /v1/stocks/quotes/{symbol}/ — with cache */
 export async function getStockQuote(
   symbol: string,
+  options?: { skipCache?: boolean },
 ): Promise<StockQuoteResponse> {
   const sym = symbol.toUpperCase();
+
+  if (!options?.skipCache && isDatabaseConfigured()) {
+    const cached = await getCachedStockQuote(sym);
+    if (cached) {
+      await logApiRequest({
+        endpoint: `/stocks/quotes/${sym}/`,
+        statusCode: 200,
+        cacheHit: true,
+        creditsEstimated: 0,
+      });
+      if (cached.updated?.[0]) latestQuoteTimestamp = cached.updated[0];
+      return cached;
+    }
+  }
+
   const data = await marketDataFetch<StockQuoteResponse>(
     `/stocks/quotes/${sym}/`,
     undefined,
     { allowUnauthenticated: canUseUnauthenticated(sym) },
   );
 
-  if (data.updated?.[0]) {
-    latestQuoteTimestamp = data.updated[0];
-  }
-
+  if (data.updated?.[0]) latestQuoteTimestamp = data.updated[0];
+  await cacheStockQuote(sym, data);
   return data;
 }
 
-/** GET /v1/options/expirations/{underlyingSymbol}/ */
+/** GET /v1/options/expirations/{underlyingSymbol}/ — with cache */
 export async function getOptionExpirations(
   underlying: string,
+  options?: { skipCache?: boolean },
 ): Promise<OptionExpirationsResponse> {
   const sym = underlying.toUpperCase();
-  return marketDataFetch<OptionExpirationsResponse>(
+
+  if (!options?.skipCache && isDatabaseConfigured()) {
+    const cached = await getCachedExpirations(sym);
+    if (cached) {
+      await logApiRequest({
+        endpoint: `/options/expirations/${sym}/`,
+        statusCode: 200,
+        cacheHit: true,
+        creditsEstimated: 0,
+      });
+      return cached;
+    }
+  }
+
+  const data = await marketDataFetch<OptionExpirationsResponse>(
     `/options/expirations/${sym}/`,
     undefined,
     { allowUnauthenticated: canUseUnauthenticated(sym) },
   );
+
+  await cacheExpirations(sym, data);
+  return data;
 }
 
 export interface OptionChainParams {
@@ -138,22 +242,51 @@ export interface OptionChainParams {
   range?: "itm" | "otm" | "atm" | "all";
 }
 
-/** GET /v1/options/chain/{underlyingSymbol}/ */
+function toChainCacheKey(
+  underlying: string,
+  params?: OptionChainParams,
+): ChainCacheKey {
+  return {
+    underlying: underlying.toUpperCase(),
+    expiration: params?.expiration,
+    side: params?.side,
+    range: params?.range,
+  };
+}
+
+/** GET /v1/options/chain/{underlyingSymbol}/ — with cache */
 export async function getOptionChain(
   underlying: string,
   params?: OptionChainParams,
+  options?: { skipCache?: boolean },
 ): Promise<OptionChainResponse> {
   const sym = underlying.toUpperCase();
+  const cacheKey = toChainCacheKey(sym, params);
+
+  if (!options?.skipCache && isDatabaseConfigured() && params?.expiration) {
+    const cached = await getCachedOptionChain(cacheKey);
+    if (cached) {
+      await logApiRequest({
+        endpoint: `/options/chain/${sym}/`,
+        statusCode: 200,
+        cacheHit: true,
+        creditsEstimated: 0,
+      });
+      if (cached.updated?.[0]) latestQuoteTimestamp = cached.updated[0];
+      return cached;
+    }
+  }
+
   const data = await marketDataFetch<OptionChainResponse>(
     `/options/chain/${sym}/`,
     params as Record<string, string | number | boolean | undefined>,
     { allowUnauthenticated: canUseUnauthenticated(sym) },
   );
 
-  if (data.updated?.[0]) {
-    latestQuoteTimestamp = data.updated[0];
+  if (data.updated?.[0]) latestQuoteTimestamp = data.updated[0];
+  if (params?.expiration) {
+    await cacheOptionChain(cacheKey, data);
   }
-
   return data;
 }
 
@@ -275,10 +408,11 @@ export async function runDiagnostics(symbol: string = "QQQ") {
         latestQuoteTimestamp: null,
         dataFreshness: "STALE" as const,
         error:
-          "MARKETDATA_TOKEN is not configured. Add it to frontend/.env.local",
+          "MARKETDATA_TOKEN is not configured. Add it to .env.local",
       },
       symbol,
       connectionMode,
+      databaseConfigured: isDatabaseConfigured(),
       error: "MARKET DATA NOT CONNECTED",
     };
   }
@@ -294,9 +428,11 @@ export async function runDiagnostics(symbol: string = "QQQ") {
       },
       symbol,
       connectionMode,
+      databaseConfigured: isDatabaseConfigured(),
       error: `DEMO_MODE only supports ${[...DEMO_SYMBOLS].join(", ")}`,
     };
   }
+
   const health: MarketDataHealth = {
     connected: false,
     lastSuccessfulRequest: null,
@@ -311,7 +447,6 @@ export async function runDiagnostics(symbol: string = "QQQ") {
 
     const expirations = await getOptionExpirations(symbol);
 
-    // Pick nearest expiration with 3-30 DTE if available
     const today = new Date();
     const validExpirations = (expirations.expirations ?? []).filter((exp) => {
       const dte = Math.ceil(
@@ -340,10 +475,14 @@ export async function runDiagnostics(symbol: string = "QQQ") {
     health.latestQuoteTimestamp = formatUnixEt(latestQuoteTimestamp);
     health.dataFreshness = classifyDataFreshness(latestQuoteTimestamp);
 
+    const { getCacheStats } = await import("@/services/cache");
+
     return {
       health,
       symbol,
       connectionMode,
+      databaseConfigured: isDatabaseConfigured(),
+      cacheStats: await getCacheStats(),
       quote,
       normalizedQuote,
       expirations,
@@ -359,6 +498,12 @@ export async function runDiagnostics(symbol: string = "QQQ") {
         : err instanceof Error
           ? err.message
           : "Unknown error";
-    return { health, symbol, connectionMode, error: health.error };
+    return {
+      health,
+      symbol,
+      connectionMode,
+      databaseConfigured: isDatabaseConfigured(),
+      error: health.error,
+    };
   }
 }
