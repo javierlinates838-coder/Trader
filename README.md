@@ -27,12 +27,10 @@ npm run dev
 
 ### Deploy to Vercel
 
-1. Import repo on [vercel.com/new](https://vercel.com/new) — root `vercel.json` points to `frontend/` automatically
-2. Add **Vercel Postgres** storage (auto-sets `POSTGRES_URL`)
-3. Set `MARKETDATA_TOKEN`, `CRON_SECRET`, `MIGRATE_SECRET`
+1. Import at [vercel.com/new/import](https://vercel.com/new/import) — choose **Services** preset
+2. Expand **Environment Variables** → add `MARKETDATA_TOKEN` (your MarketData.app API key)
+3. Add **Vercel Postgres** after deploy (Storage tab)
 4. Redeploy, then run migration: `POST /api/db/migrate`
-
-If the site doesn't load: **Settings → Root Directory → `frontend`** → Redeploy
 
 Full guide: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 
