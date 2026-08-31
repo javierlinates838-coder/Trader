@@ -1,4 +1,4 @@
-import { readFileSync } from "fs";
+import { readFileSync, readdirSync } from "fs";
 import { join } from "path";
 import { Pool } from "@neondatabase/serverless";
 import { getDatabaseUrl } from "../db";
@@ -10,19 +10,30 @@ export async function runMigrations(): Promise<{ ok: boolean; message: string }>
   }
 
   const pool = new Pool({ connectionString: url });
-  const migrationPath = join(process.cwd(), "drizzle", "0000_init.sql");
-  const migration = readFileSync(migrationPath, "utf-8");
+  const drizzleDir = join(process.cwd(), "drizzle");
+  const files = readdirSync(drizzleDir)
+    .filter((f) => f.endsWith(".sql"))
+    .sort();
 
-  const statements = migration
-    .split(";")
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0);
+  let totalStatements = 0;
 
-  for (const statement of statements) {
-    await pool.query(statement);
+  for (const file of files) {
+    const migration = readFileSync(join(drizzleDir, file), "utf-8");
+    const statements = migration
+      .split(";")
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+
+    for (const statement of statements) {
+      await pool.query(statement);
+      totalStatements++;
+    }
   }
 
   await pool.end();
 
-  return { ok: true, message: `Applied ${statements.length} migration statements` };
+  return {
+    ok: true,
+    message: `Applied ${totalStatements} statements from ${files.length} migration files`,
+  };
 }

@@ -14,7 +14,7 @@
 - [x] Data freshness classification
 - [x] Architecture documentation
 
-## Phase 2: Database & Caching ✅ (Current)
+## Phase 2: Database & Caching ✅
 
 - [x] PostgreSQL schema with Drizzle ORM (Neon / Vercel Postgres)
 - [x] Tables: symbols, stock_quotes, stock_bars, option_contracts, option_quotes, option_chain_cache, api_requests, scan_queue, settings
@@ -23,14 +23,15 @@
 - [x] Scan queue infrastructure
 - [x] Vercel deployment configuration
 
-## Phase 3: Underlying Engine (Module 1)
+## Phase 3: Underlying Engine (Module 1) ✅ (Current)
 
-- [ ] Daily candle fetching for universe symbols
-- [ ] SMA (20/50/200), EMA (9/20/50/200)
-- [ ] RSI(14), ATR(14), historical volatility
-- [ ] Relative volume, support/resistance
-- [ ] Underlying classification (7 states)
-- [ ] Unit tests for all indicators
+- [x] Daily candle fetching for universe symbols (cached)
+- [x] SMA (20/50/200), EMA (9/20/50/200)
+- [x] RSI(14), ATR(14), historical volatility
+- [x] Relative volume, support/resistance
+- [x] Underlying classification (7 states)
+- [x] `/underlying` dashboard + API routes
+- [x] Unit tests for indicators and classification
 
 ## Phase 4: Option Pipeline (Modules 2–6)
 

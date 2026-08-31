@@ -296,9 +296,11 @@ export async function getStockCandles(
   resolution: string = "D",
   params?: { from?: string; to?: string; countback?: number },
 ) {
+  const sym = symbol.toUpperCase();
   return marketDataFetch(
-    `/stocks/candles/${resolution}/${symbol.toUpperCase()}/`,
+    `/stocks/candles/${resolution}/${sym}/`,
     params,
+    { allowUnauthenticated: canUseUnauthenticated(sym) },
   );
 }
 
