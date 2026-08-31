@@ -27,10 +27,12 @@ npm run dev
 
 ### Deploy to Vercel
 
-1. Import repo on Vercel with **Root Directory** = `frontend`
+1. Import repo on [vercel.com/new](https://vercel.com/new) — root `vercel.json` points to `frontend/` automatically
 2. Add **Vercel Postgres** storage (auto-sets `POSTGRES_URL`)
 3. Set `MARKETDATA_TOKEN`, `CRON_SECRET`, `MIGRATE_SECRET`
-4. Run migration: `POST /api/db/migrate`
+4. Redeploy, then run migration: `POST /api/db/migrate`
+
+If the site doesn't load: **Settings → Root Directory → `frontend`** → Redeploy
 
 Full guide: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 

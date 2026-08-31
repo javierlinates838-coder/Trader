@@ -10,8 +10,10 @@ The repo is already connected. Vercel will deploy from `main` after merge.
 
 1. Go to [vercel.com/new](https://vercel.com/new)
 2. Import the `Trader` GitHub repository
-3. Set **Root Directory** to `frontend`
-4. Framework Preset: **Next.js** (auto-detected)
+3. Framework Preset: **Next.js** (auto-detected)
+4. **Root Directory:** leave as `.` (repo root) — `vercel.json` at the repo root sets `"rootDirectory": "frontend"` automatically
+
+> If the site shows a build error or blank page, open **Settings → General → Root Directory** and set it to `frontend`, then redeploy.
 
 ## 3. Add Vercel Postgres
 
