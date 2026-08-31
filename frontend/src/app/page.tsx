@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { SetupStatus } from "@/components/setup-status";
 
 export default function HomePage() {
   return (
@@ -9,7 +10,7 @@ export default function HomePage() {
           variant="outline"
           className="border-emerald-500/50 text-emerald-400"
         >
-          Phase 1 — MarketData Connection
+          OPTION1 Scanner
         </Badge>
         <h1 className="text-4xl font-bold tracking-tight text-white md:text-5xl">
           OPTION1
@@ -19,7 +20,10 @@ export default function HomePage() {
           numbers.
         </p>
       </div>
-      <div className="flex gap-4">
+
+      <SetupStatus />
+
+      <div className="flex flex-wrap justify-center gap-4">
         <Link
           href="/diagnostics"
           className="inline-flex items-center justify-center rounded-md border border-slate-700 px-4 py-2 text-sm font-medium text-slate-200 hover:bg-slate-800"
